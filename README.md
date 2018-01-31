@@ -1,23 +1,14 @@
-# tf-text-classification-demo
+# dl
 
 by Joe Hahn,<br />
 jmh.datasciences@gmail.com,<br />
-16 January 2018<br />
+30 January 2018<br />
 git branch=master
 
 
 ### Intro:
 
-This demo uses an LSTM neural network for text classification. Begin by downloading about
-90 books from Project Gutenberg having titles like Dracula, Moby Dick, Wuthering Heights,
-etc, with these books then exploded into about one hundred thousand chunks of text
-that are each 100 words long. Each text-chunk is then vectorized in a way that preserves
-word order, so note that a bag-of-words approach is NOT used here.
-The demo then gathers these text-chunks into training and
-testing samples, and then trains a long short term memory (LSTM) neural
-network to predict the authors of the testing text-chunks. LSTM is useful
-when making predictions from ordered data such as text, and is why it is used here.
-Model accuracy is then assessed.
+blah blah blah...
 
 ### Setup:
 
@@ -34,29 +25,37 @@ ahead to the _Execute_ section where results are also presented.
     security group settings:
         set SSH and TCP entries to have Source=My IP         #this permits ssh and jupyter
         add custom TCP rule, port=6006, Source=My IP         #this permits tensorboard
-    create keypair with name=tf_demo
+    create keypair with name=dl
     Launch
 
 this instance provides 26 ECUs, 8 vCPUs, 2.6 GHz, Intel Xeon E5-2670, 15 Gb memory, 
 10 Gb SSD Storage at a cost of $0.74/hr.
 
-2 The above also creates private ssh key named tf_demo.pem that should be stored in the 'private'
+2 The above also creates private ssh key named dl.pem that should be stored in the 'private'
 folder with these permissions:
 
-    chmod 400 private/tf_demo.pem
+    chmod 400 private/dl.pem
 
 3 Obtain the instance's public IP address from the EC2 console, and then ssh into the instance:
 
-    ssh -i private/tf_demo.pem ubuntu@ec2-52-11-206-236.us-west-2.compute.amazonaws.com
+    ssh -i private/dl.pem ubuntu@ec2-52-11-16-208.us-west-2.compute.amazonaws.com
 
 4 Clone this repo to the instance:
 
-    git clone https://github.com/joehahn/tf-text-classification-demo.git
+    git clone https://github.com/joehahn/dl.git
     cd dl
 
 5 Install additional python library:
 
     sudo pip install seaborn
+    sudo pip install pygame
+    sudo pip install scikit-image
+
+6 clone flappy-bird:
+
+    git clone https://github.com/yanpanlau/Keras-FlappyBird.git
+    cd Keras-FlappyBird
+
 
 6 Download a CD of 600 Project Gutenberg books from a mirror (since Gutenberg
 often blocks downloads to an EC2 instance), then mount:
@@ -105,7 +104,7 @@ since Bitfusion's Jupyter wont let you navigate to this repo.
 
 13 and browse jupyter at public_IP:8888 and log in with password=instance-id
 
-    ec2-52-11-206-236.us-west-2.compute.amazonaws.com:8888
+    ec2-52-11-16-208.us-west-2.compute.amazonaws.com:8888
 
 
 14 Navigate to the tf-text-classification.ipynb Jupyter notebook and click Kernel > Run to
@@ -122,7 +121,7 @@ is about 40 minutes.
 
 17 And then browse the tensorboard UI at
 
-    ec2-52-11-206-236.us-west-2.compute.amazonaws.com:6006
+    ec2-52-11-16-208.us-west-2.compute.amazonaws.com:6006
 
 which is useful when tuning the neural network parameters.
 
