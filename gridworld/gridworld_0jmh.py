@@ -9,12 +9,12 @@
 #this was adapted from http://outlace.com/rlpart3.html  
 #to execute:    ./gridworld_0jmh.py
 
-
+#initialize state = dict containing x,y coordinates of all objects in the system
 def initialize_state():
     state = {'agent':{'x':3, 'y':1}, 'goal':{'x':1, 'y':0}, 'pit':{'x':1, 'y':3}, 'wall':{'x':2, 'y':2}}
     return state
 
-#initialize the environment
+#initialize the environment = dict containing all other constants that describe the system
 def initialize_environment(state, grid_size):
     actions = ['up', 'down', 'left', 'right']
     action_indexes = range(len(actions))
@@ -53,7 +53,7 @@ def get_reward(state):
         return -10
     return -1
 
-#generate string array showing locations of all objects
+#generate 2D string array showing locations of all objects
 import numpy as np
 def state_grid(state, environment):
     grid_size = environment['grid_size']
@@ -66,7 +66,7 @@ def state_grid(state, environment):
         grid[y, x] = object[0].upper()
     return grid
 
-#convert state (a dict) into a numpy array of x,y coordinates
+#convert state into a numpy array of x,y coordinates
 def state2vector(state, environment):
     vector = []
     for object in objects:
@@ -76,7 +76,7 @@ def state2vector(state, environment):
         vector += [x, y]
     return np.array(vector)
 
-
+#initial conditions
 grid_size = 7
 state = initialize_state()
 environment = initialize_environment(state, grid_size)
