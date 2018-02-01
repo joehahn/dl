@@ -53,9 +53,8 @@ folder with these permissions:
 
 6 clone flappy-bird:
 
-    git clone https://github.com/yanpanlau/Keras-FlappyBird.git
-    cd Keras-FlappyBird
-
+    git clone https://github.com/keon/deep-q-learning.git
+    cd cd deep-q-learning
 
 6 Download a CD of 600 Project Gutenberg books from a mirror (since Gutenberg
 often blocks downloads to an EC2 instance), then mount:
