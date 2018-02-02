@@ -1,31 +1,43 @@
 #!/usr/bin/env python
 
-#gridworld_0jmh.py
+#gridwalker.py
 #
 #by Joe Hahn
 #jmh.datasciences@gmail.com
 #31 January 2018
 #
 #this was adapted from http://outlace.com/rlpart3.html  
-#to execute:    ./gridworld_0jmh.py
+#to execute:    ./gridwalker.py
 
 #imports
 import numpy as np
+import random
 
-#initialize state = dict containing x,y coordinates of all objects in the system
-def initialize_state():
-    state = {'agent':{'x':5, 'y':5}, 'goal':{'x':1, 'y':1}, 'pit':{'x':3, 'y':2}, 'wall':{'x':1, 'y':3}}
-    return state
-
-#initialize the environment = dict containing all other constants that describe the system
-def initialize_environment(state, grid_size):
+#initialize the environment = dict containing all constants that describe the system
+def initialize_environment(grid_size):
     actions = ['up', 'down', 'left', 'right']
     action_indexes = range(len(actions))
-    objects = state.keys()
-    max_moves = 5*grid_size
+    objects = ['agent', 'goal', 'pit', 'wall']
+    max_moves = 4*grid_size
     environment = {'actions':actions, 'action_indexes':action_indexes, 'objects':objects,
         'grid_size':grid_size, 'max_moves':max_moves}
     return environment
+
+#initialize state = dict containing x,y coordinates of all objects in the system,
+#with agent's location random and all other objects in fixed location
+def initialize_state(environment):
+    wall = {'x':1, 'y':3}
+    pit  = {'x':3, 'y':2}
+    goal = {'x':4, 'y':4}
+    grid_size = environment['grid_size']
+    while (True):
+        agent = {'x':np.random.randint(0, grid_size), 'y':np.random.randint(0, grid_size)}
+        if (agent != wall):
+            if (agent != pit):
+                if (agent != goal):
+                    break
+    state = {'agent':agent, 'wall':wall, 'pit':pit, 'goal':goal}
+    return state
 
 #define agent's possible actions
 def move_agent(state, action, environment):
@@ -102,19 +114,21 @@ def state2vector(state, environment):
 #check initial conditions
 grid_size = 6
 rn_seed = 15
-state = initialize_state()
-environment = initialize_environment(state, grid_size)
+np.random.seed(rn_seed)
+environment = initialize_environment(grid_size)
+state = initialize_state(environment)
 objects = environment['objects']
 actions = environment['actions']
 action_indexes = environment['action_indexes']
 state_vector = state2vector(state, environment)
+grid = state_grid(state, environment)
 print 'objects = ', objects
 print 'actions = ', actions
 print 'action_indexes = ', action_indexes
 print 'state = ', state
 print 'state_vector = ', state_vector
 print 'state_vector.shape = ', state_vector.shape
-print state_grid(state, environment)
+print np.rot90(grid.T)
 N_inputs = state_vector.shape[1]
 N_outputs = len(actions)
 grid_size = environment['grid_size']
@@ -156,15 +170,34 @@ rms = RMSprop()
 model.compile(loss='mse', optimizer=rms)
 print model.summary()
 
+#initialize history with random moves
+history_size = 1000
+from collections import deque
+history = deque(maxlen=history_size)
+state = initialize_state(environment)
+N_moves = 0
+while (len(history) < history_size):
+    state_vector = state2vector(state, environment)
+    action_index = np.random.choice(action_indexes)
+    action = actions[action_index]
+    next_state = move_agent(state, action, environment)
+    reward = get_reward(next_state, state)
+    game_on = check_game_on(next_state, N_moves, environment)
+    history.append((state, action, reward, next_state, game_on))
+    if (game_on):
+        state = next_state
+        N_moves += 1
+    else:
+        state = initialize_state(environment)
+        N_moves = 0
+
 #train
-N_training_games = 2000
+N_training_games = 1000
 gamma = 0.9
 epsilon = 1.0
-np.random.seed(rn_seed)
 action_indexes = environment['action_indexes']
 for N_games in range(N_training_games):
-    state = initialize_state()
-    game_over = False
+    state = initialize_state(environment)
     N_moves = 0
     if (N_games > 20):
         #slowly ramp epsilon down to 0.1
@@ -172,8 +205,30 @@ for N_games in range(N_training_games):
             epsilon -= 1.0/(N_training_games/2)
     game_on = check_game_on(state, N_moves, environment)
     while (game_on):
+        #begin experience replay
+        batch_size = history_size/10
+        history_sub = random.sample(history, batch_size)
+        statez = [h[0] for h in history_sub]
+        actionz = [h[1] for h in history_sub]
+        rewardz = [h[2] for h in history_sub]
+        statez_next = [h[3] for h in history_sub]
+        game_onz = [h[4] for h in history_sub]
+        state_vectorz = np.array([state2vector(s, environment) for s in statez]).reshape(batch_size, N_inputs)
+        Q = model.predict(state_vectorz, batch_size=batch_size)
+        state_vectorz_next = np.array([state2vector(s, environment) for s in statez_next]).reshape(batch_size, N_inputs)
+        Q_next = model.predict(state_vectorz_next, batch_size=batch_size)
+        for idx in range(batch_size):
+            reward = rewardz[idx]
+            max_Q_next = np.max(Q_next[idx])
+            action = actionz[idx]
+            for j in action_indexes:
+                if (actionz[j] == action):
+                    Q[j] = reward
+                    if (game_onz[idx]):
+                        Q[j] += gamma*max_Q_next
+        model.fit(state_vectorz, Q, batch_size=batch_size, epochs=1, verbose=0)
+        #end experience replay
         state_vector = state2vector(state, environment)
-        #Let's run our Q function on S to get Q values for all possible actions
         Q = model.predict(state_vector, batch_size=1)
         if (np.random.random() < epsilon):
             #choose a random action_index
@@ -182,16 +237,19 @@ for N_games in range(N_training_games):
             #choose best action_index from Q(s,a) values
             action_index = np.argmax(Q)
         action = actions[action_index]
-        next_state = move_agent(state, action, environment)
-        next_state_vector = state2vector(next_state, environment)
-        next_Q = model.predict(next_state_vector, batch_size=1)
-        max_Q = np.max(next_Q)
-        reward = get_reward(next_state, state)
-        game_on = check_game_on(next_state, N_moves, environment)
+        state_next = move_agent(state, action, environment)
+        state_vector_next = state2vector(state_next, environment)
+        Q_next = model.predict(state_vector_next, batch_size=1)
+        max_Q_next = np.max(Q_next)
+        reward = get_reward(state_next, state)
+        game_on = check_game_on(state_next, N_moves, environment)
+        revised_Q = reward
         if (game_on):
-            revised_Q = reward + gamma*max_Q
+            revised_Q += gamma*max_Q
+        Q[0][action_index] = revised_Q
+        if (game_on):
+            pass
         else:
-            revised_Q = reward
             print("game number: %s" % N_games)
             print("move number: %s" % N_moves)
             print("action: %s" % action)
@@ -201,14 +259,15 @@ for N_games in range(N_training_games):
                 print("too many turns")
             else:
                 print("game over")            
-        Q[0][action_index] = revised_Q
-        model.fit(state_vector, Q, batch_size=1, epochs=1, verbose=0)
+        history.append((state, action, reward, next_state, game_on))
         state = next_state
         N_moves += 1
 
+
+
 #test
 def test(environment):
-    state = initialize_state()
+    state = initialize_state(environment)
     grid = state_grid(state, environment)
     print('initial state:')
     print np.rot90(grid.T)
