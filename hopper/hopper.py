@@ -20,6 +20,7 @@ def initialize_environment(rn_seed, max_moves):
     environment = {'rn_seed':rn_seed, 'max_moves':max_moves}
     return environment
 
+#initialize state with bug at origin and cat randomly placed
 def initialize_state(environment):
     bug_xy = np.array([0.0, 0.0])
     stdev = 1.0
@@ -29,6 +30,15 @@ def initialize_state(environment):
     state = {'cat_xy':cat_xy, 'bug_xy':bug_xy}
     return state
 
+#calculate the bug-cat separation
+def get_separation(state):
+    bug_xy = state['bug_xy']
+    cat_xy = state['cat_xy']
+    delta = bug_xy - cat_xy
+    separation = np.sqrt((delta**2).sum())
+    return separation
+
+#move the bug
 def move_bug(bug_xy, cat_xy):
     #random component of bug's movement
     stdev = 1.0
@@ -51,6 +61,7 @@ def move_bug(bug_xy, cat_xy):
     bug_delta_xy = np.array([bug_dx, bug_dy])
     return bug_delta_xy
 
+#move bug and cat
 def update_state(state, cat_delta_xy):
     bug_xy = state['bug_xy'].copy()
     cat_xy = state['cat_xy'].copy()
@@ -60,22 +71,33 @@ def update_state(state, cat_delta_xy):
     next_state['cat_xy'] += cat_delta_xy
     return next_state
 
-#initial settings
-rn_seed = 12
-max_moves = 10
+#calculate reward = 1/(bug-cat separation)
+def get_reward(state):
+    separation = get_separation(state)
+    reward = 1.0/separation
+    return reward
 
-#initialize system
-environment = initialize_environment(rn_seed, max_moves)
-state = initialize_state(environment)
-print 'environment = ', environment
-print 'state = ', state
+#check game state = running, or too many moves
+def get_game_state(N_moves, environment):
+    game_state = 'running'
+    max_moves = environment['max_moves']
+    if (N_moves > max_moves):
+        game_state = 'max_moves'
+    return game_state
 
-for move in range(max_moves):
-    cat_xy = state['cat_xy'].copy()
-    bug_xy = state['bug_xy'].copy()
-    cat_delta_xy = bug_xy - cat_xy
-    next_state = update_state(state, cat_delta_xy)
-    print next_state
-    state = copy.deepcopy(next_state)
-
+#build neural network
+def build_model(N_inputs, N_neurons, N_outputs):
+    from keras.models import Sequential
+    from keras.layers.core import Dense, Activation
+    from keras.optimizers import RMSprop
+    model = Sequential()
+    model.add(Dense(N_neurons, input_shape=(N_inputs,)))
+    model.add(Activation('relu'))
+    model.add(Dense(N_neurons))
+    model.add(Activation('relu'))
+    model.add(Dense(N_outputs))
+    model.add(Activation('linear'))
+    rms = RMSprop()
+    model.compile(loss='mse', optimizer=rms)
+    return model
 
