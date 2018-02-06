@@ -38,7 +38,7 @@ folder with these permissions:
 
 3 Obtain the instance's public IP address from the EC2 console, and then ssh into the instance:
 
-    ssh -i private/dl.pem ubuntu@ec2-52-11-16-208.us-west-2.compute.amazonaws.com
+    ssh -i private/dl.pem ubuntu@ec2-54-213-247-19.us-west-2.compute.amazonaws.com
 
 4 Clone this repo to the instance:
 
@@ -165,3 +165,16 @@ to 1400, that were pulled from the 88 different books and used to train this cla
 ![](figs/accuracy_vs_Nchunks.png)
 Evidently this model is quite insensitive to the training sample's class imbalance, which for
 some books is a factor of 3.
+
+
+install gym:
+git clone https://github.com/openai/gym
+cd gym
+sudo /usr/local/bin/pip install -e .
+
+keras-rl:
+sudo /usr/local/bin/pip install keras-rl
+git clone https://github.com/matthiasplappert/keras-rl.git
+cd keras-rl
+
+
