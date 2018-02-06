@@ -38,7 +38,7 @@ folder with these permissions:
 
 3 Obtain the instance's public IP address from the EC2 console, and then ssh into the instance:
 
-    ssh -i private/dl.pem ubuntu@ec2-54-213-247-19.us-west-2.compute.amazonaws.com
+    ssh -i private/dl.pem ubuntu@ec2-54-218-254-245.us-west-2.compute.amazonaws.com
 
 4 Clone this repo to the instance:
 
@@ -172,9 +172,10 @@ git clone https://github.com/openai/gym
 cd gym
 sudo /usr/local/bin/pip install -e .
 
-keras-rl:
-sudo /usr/local/bin/pip install keras-rl
-git clone https://github.com/matthiasplappert/keras-rl.git
-cd keras-rl
+install tflearn:
+sudo /usr/local/bin/pip install tflearn
+
+install deep-rl:
+git clone https://github.com/pemami4911/deep-rl.git
 
 
