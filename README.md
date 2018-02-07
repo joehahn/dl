@@ -38,7 +38,7 @@ folder with these permissions:
 
 3 Obtain the instance's public IP address from the EC2 console, and then ssh into the instance:
 
-    ssh -i private/dl.pem ubuntu@ec2-54-218-254-245.us-west-2.compute.amazonaws.com
+    ssh -i private/dl.pem ubuntu@ec2-54-212-202-132.us-west-2.compute.amazonaws.com
 
 4 Clone this repo to the instance:
 
