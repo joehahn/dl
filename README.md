@@ -103,7 +103,7 @@ since Bitfusion's Jupyter wont let you navigate to this repo.
 
 13 and browse jupyter at public_IP:8888 and log in with password=instance-id
 
-    ec2-52-11-16-208.us-west-2.compute.amazonaws.com:8888
+    ec2-54-212-202-132.us-west-2.compute.amazonaws.com:8888
 
 
 14 Navigate to the tf-text-classification.ipynb Jupyter notebook and click Kernel > Run to

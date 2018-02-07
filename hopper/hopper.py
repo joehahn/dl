@@ -216,6 +216,11 @@ def state2vector(state):
 def train(environment, model, N_training_games, gamma, memories, batch_size, debug=False):
     epsilon = 1.0
     for N_games in range(N_training_games):
+        rn_seed = N_games
+        max_moves = 3*N_games
+        if (max_moves > 1000):
+            max_moves = 1000
+        environment = initialize_environment(rn_seed, max_moves)
         state = initialize_state(environment)
         state_vector = state2vector(state)
         N_inputs = state_vector.shape[1]
