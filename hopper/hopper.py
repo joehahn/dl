@@ -16,11 +16,12 @@ import copy
 from collections import deque
 
 #initialize the environment = dict containing all constants that describe the system
-def initialize_environment(rn_seed, max_moves):
+def initialize_environment(rn_seed, max_moves, max_distance):
     random.seed(rn_seed)
-    actions = [0, 1, 2, 3]
-    acts = ['slow-left', 'slow-right', 'fast-left', 'fast-right']
-    environment = {'rn_seed':rn_seed, 'max_moves':max_moves, 'actions':actions, 'acts':acts}
+    actions = [0, 1, 2, 3, 4]
+    acts = ['slow-left', 'slow-right', 'fast-left', 'fast-right', 'turnaround']
+    environment = {'rn_seed':rn_seed, 'max_moves':max_moves, 'actions':actions, 'acts':acts,
+        'max_distance':max_distance}
     return environment
 
 #initialize state with bug at origin and cat randomly placed
@@ -84,6 +85,12 @@ def move_cat(state, action):
     if ((action == 1) or (action == 3)):
         #slight right turn
         cat_run_direction_angle = state['cat_run_direction_angle'] - delta_angle
+    if (action == 4):
+        #cat turns around
+        cat_run_direction_angle = state['cat_run_direction_angle'] + np.pi
+        if (cat_run_direction_angle > np.pi):
+            cat_run_direction_angle -= 2.0*np.pi
+        speed = slow_speed
     timestep = 1.0
     distance = speed*timestep
     dx = distance*np.cos(cat_run_direction_angle)
@@ -109,54 +116,69 @@ def update_state(state, action):
     next_state['bug'] += bug_displacement
     next_state['cat'] += cat_displacement
     next_state['cat_run_direction_angle'] = cat_run_direction_angle
-    bug_distance, bug_direction_angle = get_separation(state)
+    bug_distance, bug_direction_angle = get_separation(next_state)
+    next_state['bug_distance'] = bug_distance
     next_state['bug_direction_angle'] = bug_direction_angle
     return next_state
 
-#calculate reward = 1/softened(bug-cat separation)
-def get_reward(state):
-    distance, angle = get_separation(state)
-    softening_distance = 0.3
-    reward = 1.0/np.sqrt(softening_distance**2 + distance**2)
+#calculate reward
+def get_reward(state, environment):
+    bug_distance, bug_direction_angle = get_separation(state)
+    softening_distance = 0.2
+    reward = 1.0/np.sqrt(softening_distance**2 + bug_distance**2) - bug_distance/5
+    max_distance = environment['max_distance']
+    if (bug_distance > max_distance):
+        reward -= -7.0
     return reward
 
 #check game state = running, or too many moves
-def get_game_state(N_moves, environment):
+def get_game_state(N_moves, state, environment):
     game_state = 'running'
     max_moves = environment['max_moves']
     if (N_moves > max_moves):
         game_state = 'max_moves'
+    bug_distance, bug_direction_angle = get_separation(state)
+    max_distance = environment['max_distance']
+    if (bug_distance > max_distance):
+        game_state = 'max_distance'
     return game_state
 
 #play one game, with game history stored in memories queue
-def play_game(environment, strategy):
+def play_game(environment, strategy, model=None):
     max_moves = environment['max_moves']
     memories = deque(maxlen=max_moves+1)
     state = initialize_state(environment)
     N_moves = 1
-    game_state = get_game_state(N_moves, environment)
+    game_state = get_game_state(N_moves, state, environment)
     while (game_state == 'running'):
         cat_run_direction_angle = state['cat_run_direction_angle']
         bug_direction_angle = state['bug_direction_angle']
+        bug_cat_relative_angle = bug_direction_angle - cat_run_direction_angle
+        if (bug_cat_relative_angle > np.pi):
+            bug_cat_relative_angle -= 2*np.pi
+        if (bug_cat_relative_angle < -np.pi):
+            bug_cat_relative_angle += 2*np.pi
         if (strategy == 'slow'):
-            if (bug_direction_angle > cat_run_direction_angle):
+            if (bug_cat_relative_angle > 0):
                 #advance slowly with slight turn to left
                 action = 0
             else:
                 #advance slowly with slight turn to right
                 action = 1
         if (strategy == 'fast'):
-            if (bug_direction_angle > cat_run_direction_angle):
+            if (bug_cat_relative_angle > 0):
                 #advance rapidly with slight turn to left
                 action = 2
             else:
                 #advance rapidly with slight turn to right
                 action = 3
-        if (strategy == 'random'):
-            action = random.choice([0,1,2,3])
+        if (strategy == 'smart'):
+            state_vector = state2vector(state)
+            Q = model.predict(state_vector, batch_size=1)
+            action = np.argmax(Q)
         state_next = update_state(state, action)
-        reward = get_reward(state_next)
-        game_state = get_game_state(N_moves, environment)
+        reward = get_reward(state_next, environment)
+        game_state = get_game_state(N_moves, state_next, environment)
         memory = (state, action, reward, state_next, game_state)
         memories.append(memory)
         state = copy.deepcopy(state_next)
@@ -167,6 +189,7 @@ def play_game(environment, strategy):
 def memories2arrays(memories):
     cat_list = []
     bug_list = []
+    actions_list = []
     rewards_list = []
     bug_distances_list = []
     bug_direction_angles_list = []
@@ -175,18 +198,20 @@ def memories2arrays(memories):
         state, action, reward, state_next, game_state = memory
         cat_list += [state['cat']]
         bug_list += [state['bug']]
+        actions_list += [action]
         rewards_list += [reward]
         bug_distances_list += [state['bug_distance']]
         bug_direction_angles_list += [state['bug_direction_angle']]
         cat_run_direction_angles_list += [state['cat_run_direction_angle']]
     cat = np.array(cat_list)
     bug = np.array(bug_list)
+    actions = np.array(actions_list)
     rewards = np.array(rewards_list)
     bug_distances = np.array(bug_distances_list)
     bug_direction_angles = np.array(bug_direction_angles_list)
     cat_run_direction_angles = np.array(cat_run_direction_angles_list)
     turns = np.arange(len(rewards))
-    return cat, bug, rewards, bug_distances, bug_direction_angles, cat_run_direction_angles, turns
+    return cat, bug, actions, rewards, bug_distances, bug_direction_angles, cat_run_direction_angles, turns
 
 #build neural network
 def build_model(N_inputs, N_neurons, N_outputs):
@@ -213,14 +238,12 @@ def state2vector(state):
     return v.reshape(1, len(v))
 
 #train model
-def train(environment, model, N_training_games, gamma, memories, batch_size, debug=False):
+def train(environment, model, N_training_games, max_distance, gamma, memories, batch_size, debug=False):
     epsilon = 1.0
     for N_games in range(N_training_games):
         rn_seed = N_games
-        max_moves = 3*N_games
-        if (max_moves > 1000):
-            max_moves = 1000
-        environment = initialize_environment(rn_seed, max_moves)
+        max_moves = int(1000*((N_games*1.0/N_training_games)**2) + 10)
+        environment = initialize_environment(rn_seed, max_moves, max_distance)
         state = initialize_state(environment)
         state_vector = state2vector(state)
         N_inputs = state_vector.shape[1]
@@ -230,7 +253,7 @@ def train(environment, model, N_training_games, gamma, memories, batch_size, deb
             #agent executes random actions for first 10% games, after which epsilon ramps down to 0.1
             if (epsilon > 0.1):
                 epsilon -= 1.0/(N_training_games/2)
-        game_state = get_game_state(N_moves, environment)
+        game_state = get_game_state(N_moves, state, environment)
         while (game_state == 'running'):
             state_vector = state2vector(state)
             #predict this turn's possible rewards Q
@@ -248,8 +271,8 @@ def train(environment, model, N_training_games, gamma, memories, batch_size, deb
             #predict next turn's possible rewards
             Q_next = model.predict(state_vector_next, batch_size=1)
             max_Q_next = np.max(Q_next)
-            reward = get_reward(state_next)
-            game_state = get_game_state(N_moves, environment)
+            reward = get_reward(state_next, environment)
+            game_state = get_game_state(N_moves, state_next, environment)
             #add next turn's discounted reward to this turn's predicted reward
             Q[0, action] = reward
             if (game_state == 'running'):
@@ -291,4 +314,6 @@ def train(environment, model, N_training_games, gamma, memories, batch_size, deb
                 model.fit(state_vector, Q, batch_size=1, epochs=1, verbose=0)
             state = state_next
             N_moves += 1
+            print '.',
+    print '\n'
     return model
