@@ -77,8 +77,8 @@ def move_cat(state, action):
         speed = slow_speed
     if ((action == 2) or (action == 3)):
         speed = fast_speed
-    #cat turns left or right about 10 degrees
-    delta_angle = 2*np.pi/10
+    #cat turns left or right about 25 degrees
+    delta_angle = 2*np.pi/15
     if ((action == 0) or (action == 2)):
         #slight left turn
         cat_run_direction_angle = state['cat_run_direction_angle'] + delta_angle
@@ -196,13 +196,13 @@ def memories2arrays(memories):
     cat_run_direction_angles_list = []
     for memory in memories:
         state, action, reward, state_next, game_state = memory
-        cat_list += [state['cat']]
-        bug_list += [state['bug']]
+        cat_list += [state_next['cat']]
+        bug_list += [state_next['bug']]
         actions_list += [action]
         rewards_list += [reward]
-        bug_distances_list += [state['bug_distance']]
-        bug_direction_angles_list += [state['bug_direction_angle']]
-        cat_run_direction_angles_list += [state['cat_run_direction_angle']]
+        bug_distances_list += [state_next['bug_distance']]
+        bug_direction_angles_list += [state_next['bug_direction_angle']]
+        cat_run_direction_angles_list += [state_next['cat_run_direction_angle']]
     cat = np.array(cat_list)
     bug = np.array(bug_list)
     actions = np.array(actions_list)
@@ -286,6 +286,8 @@ def train(environment, model, N_training_games, max_distance, gamma, memories, b
                     print 'final reward = ', reward
                     print 'epsilon = ', epsilon
                     print 'game_state = ', game_state
+                else:
+                    print '.',
             if (experience_replay):
                 #train model on randomly selected past experiences
                 memories.append((state, action, reward, state_next, game_state))
@@ -314,6 +316,5 @@ def train(environment, model, N_training_games, max_distance, gamma, memories, b
                 model.fit(state_vector, Q, batch_size=1, epochs=1, verbose=0)
             state = state_next
             N_moves += 1
-            print '.',
     print '\n'
     return model
