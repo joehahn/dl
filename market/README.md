@@ -103,3 +103,7 @@ and log in with password=instance-id
 
 
 
+useful urls:
+
+    https://github.com/sangaline/wayback-machine-scraper
+
