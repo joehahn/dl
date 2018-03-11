@@ -38,7 +38,7 @@ folder with these permissions:
 
 3 Obtain the instance's public IP address from the EC2 console, and then ssh into the instance:
 
-    ssh -i private/dl.pem ubuntu@ec2-54-212-202-132.us-west-2.compute.amazonaws.com
+    ssh -i private/dl.pem ubuntu@ec2-34-215-181-111.us-west-2.compute.amazonaws.com
 
 4 Clone this repo to the instance:
 
@@ -103,7 +103,7 @@ since Bitfusion's Jupyter wont let you navigate to this repo.
 
 13 and browse jupyter at public_IP:8888 and log in with password=instance-id
 
-    ec2-54-212-202-132.us-west-2.compute.amazonaws.com:8888
+    ec2-34-215-181-111.us-west-2.compute.amazonaws.com:8888
 
 
 14 Navigate to the tf-text-classification.ipynb Jupyter notebook and click Kernel > Run to
