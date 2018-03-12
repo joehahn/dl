@@ -50,4 +50,7 @@ def resample_data(df, freq):
     groups = [pd.Grouper(freq=freq, key='date'), 'ticker']
     cols = ['date', 'ticker', 'open', 'std', 'close', 'vol']
     df_resampled = df.groupby(groups, as_index=False).agg(aggregator)[cols]
-    return df_resampled
+    df_resampled['date_lagged'] = df_resampled.groupby(['ticker'])['date'].shift(1)
+    cols = ['date', 'date_lagged', 'ticker', 'open', 'std', 'close', 'vol']
+    dfd = df_resampled.dropna()[cols]
+    return dfd
