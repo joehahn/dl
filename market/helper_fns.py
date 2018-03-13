@@ -69,25 +69,41 @@ def resample_data(df, freq, tickers=None):
     #pivot table
     cols = ['date', 'ticker', 'close', 'G$vol', 'std', 'delta']
     dfp = dfc[cols].pivot(index='date', columns='ticker')
+    #drop columns containing nulls for now...due to new tickers...need to do better than this
+    pass
     #lag feature columns
     lag = 1
-    cols = ['close', 'G$vol', 'std', 'delta']
+    cols = ['close', 'G$vol', 'std']
     for col in cols:
         dfp[col] = dfp[col].shift(periods=lag, axis=0)
-    dfp = dfp[cols].dropna()
     #drop the multi-index
     cols = [col[0]+'_'+col[1] for col in dfp.columns.tolist()]
     dfp.columns = cols
+    #drop first null row
+    dfp = dfp[1:]
+    #drop columns containing nulls in first row...these are companies that formed late...need to handle this better
+    for col in dfp.columns:
+        idx = dfp[col].isnull()
+        if (idx[0]):
+            dfp.drop(col, axis=1, inplace=True)
     return dfp, dfr
 
 #this helper function builds a simple MLP classifier
-def mlp_classifier(N_inputs, N_outputs, dropout_fraction=None):
+def mlp_classifier(layers, dropout_fraction=None):
     from keras.models import Sequential
     from keras.layers import Dense, Dropout
     model = Sequential()
+    N_inputs = layers[0]
     model.add(Dense(N_inputs, activation='elu', input_shape=(N_inputs,)))
     if (dropout_fraction):
         model.add(Dropout(dropout_fraction))
+    for N in layers[1:-1]:
+        model.add(Dense(N, activation='elu'))
+        if (dropout_fraction):
+            model.add(Dropout(dropout_fraction))
+    N_outputs = layers[-1]
     model.add(Dense(N_outputs, activation='softmax'))
     model.compile(loss='categorical_crossentropy', optimizer='adam')
     return model
+
+
